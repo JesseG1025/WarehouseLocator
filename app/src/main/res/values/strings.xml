@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">WarehouseLocationScanner</string>
+    <string name="item_scanned">Item: %1$s</string>
+    <string name="location_scanned">Location: %1$s</string>
+    <string name="status_waiting">Status: Waiting for Location Scan...</string>
+    <string name="status_sending">Status: Sending to server...</string>
+    <string name="status_network_error">Status: Network Error - %1$s</string>
+    <string name="status_server_error">Status: Server Error (%1$d)</string>
+    <string name="status_success">Status: Success! DB Updated.</string>
+</resources>
