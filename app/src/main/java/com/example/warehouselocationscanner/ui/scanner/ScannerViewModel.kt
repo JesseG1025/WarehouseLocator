@@ -24,7 +24,7 @@ class ScannerViewModel : ViewModel() {
             if (currentState.sourceBarcode == null) {
                 currentState.copy(
                     sourceBarcode = barcode,
-                    statusMessage = "Source item scanned. Now scan destination bin.",
+                    statusMessage = "Item scanned. Now scan location.",
                     isError = false
                 )
             }

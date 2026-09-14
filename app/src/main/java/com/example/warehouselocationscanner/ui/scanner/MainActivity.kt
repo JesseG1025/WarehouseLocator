@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
 import android.util.Log
+import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -56,6 +57,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvLocation: TextView
     private lateinit var tvStatus: TextView
 
+    private lateinit var btnClear: Button
+
     // Reference to our broadcast receiver instance
     private lateinit var zebraReceiver: ZebraScanReceiver
 
@@ -68,6 +71,14 @@ class MainActivity : AppCompatActivity() {
         tvItem = findViewById(R.id.tvItem)
         tvLocation = findViewById(R.id.tvLocation)
         tvStatus = findViewById(R.id.tvStatus)
+        btnClear = findViewById(R.id.btnClear)
+
+        /**
+         * Allows workers to reset any scans. Can be used to clear accidental scans.
+         */
+        btnClear.setOnClickListener {
+            viewModel.resetScan()
+        }
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -108,10 +119,10 @@ class MainActivity : AppCompatActivity() {
     private fun updateUI(state: ScannerUiState) {
         // Update text views based on the current state from the ViewModel
         tvItem.text = state.sourceBarcode?.let { getString(R.string.item_scanned, it) }
-            ?: getString(R.string.status_waiting) // Fallback if null
+            ?: "Item: " // Fallback if null
 
         tvLocation.text = state.destinationBarcode?.let { getString(R.string.location_scanned, it) }
-            ?: "" // Leave blank until scanned
+            ?: "Location: " // Leave blank until scanned
 
         tvStatus.text = state.statusMessage
 
