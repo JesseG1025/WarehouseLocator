@@ -28,7 +28,7 @@
         android:theme="@style/Theme.WarehouseLocationScanner">
 
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.scanner.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

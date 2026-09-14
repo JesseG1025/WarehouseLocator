@@ -1,28 +1,39 @@
-package com.example.warehouselocationscanner
+package com.example.warehouselocationscanner.ui.scanner
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 import com.example.warehouselocationscanner.BuildConfig
+import com.example.warehouselocationscanner.R
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.Response
 
 class MainActivity : AppCompatActivity() {
+
+    // 1. Initialize our ViewModel to survive screen rotations
+    private val viewModel: ScannerViewModel by viewModels()
 
     // Intent action DataWedge is configured (in the profile) to broadcast on every scan.
     // Must match the "Intent Action" field in your DataWedge profile's Intent Output settings exactly.
@@ -37,8 +48,8 @@ class MainActivity : AppCompatActivity() {
 
     // Mutable variables driving our simple two-step scan state machine:
     // 1st scan populates itemScan, 2nd scan populates locationScan, then we submit and reset.
-    private var itemScan: String? = null
-    private var locationScan: String? = null
+    // (NOTE: This logic is now safely encapsulated inside ScannerViewModel, but the
+    // fundamental flow remains exactly as described above).
 
     // UI Elements for text display
     private lateinit var tvItem: TextView
@@ -73,6 +84,15 @@ class MainActivity : AppCompatActivity() {
                 handleScan(scannedValue)
             }
         )
+
+        // 2. Observe the ViewModel's UI State reactively
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { state ->
+                    updateUI(state)
+                }
+            }
+        }
     }
 
     private fun handleScan(barcodeData: String) {
@@ -80,26 +100,30 @@ class MainActivity : AppCompatActivity() {
         // Barcodes look similar in format, so we rely purely on scan ORDER
         // (1st = item, 2nd = location) rather than trying to detect barcode type.
 
-        // Snapshot the mutable itemScan to an immutable local variable for thread-safe null checking
-        val currentItem = itemScan
+        // Pass the raw data directly to the ViewModel. It handles the logic and
+        // will automatically emit a new state for the UI to observe.
+        viewModel.processScan(barcodeData)
+    }
 
-        if (currentItem == null) {
-            itemScan = barcodeData
-            tvItem.text = getString(R.string.item_scanned, barcodeData)
-            tvStatus.text = getString(R.string.status_waiting)
-        } else {
-            val currentLocation = barcodeData
+    private fun updateUI(state: ScannerUiState) {
+        // Update text views based on the current state from the ViewModel
+        tvItem.text = state.sourceBarcode?.let { getString(R.string.item_scanned, it) }
+            ?: getString(R.string.status_waiting) // Fallback if null
 
-            tvLocation.text = getString(R.string.location_scanned, currentLocation)
+        tvLocation.text = state.destinationBarcode?.let { getString(R.string.location_scanned, it) }
+            ?: "" // Leave blank until scanned
+
+        tvStatus.text = state.statusMessage
+
+        // If both barcodes have been captured, fire the network request
+        if (state.isReadyToMatch) {
             tvStatus.text = getString(R.string.status_sending)
-
-            sendDataToServer(currentItem, currentLocation)
+            sendDataToServer(state.sourceBarcode!!, state.destinationBarcode!!)
 
             // v1 behavior: fail loudly, no retry queue.
             // Reset immediately after firing the request so the next scan pair can begin,
             // regardless of whether this request ultimately succeeds or fails.
-            itemScan = null
-            locationScan = null
+            viewModel.resetScan()
         }
     }
 
@@ -117,15 +141,15 @@ class MainActivity : AppCompatActivity() {
             .post(body)
             .build()
 
-        client.newCall(request).enqueue(object : okhttp3.Callback {
-            override fun onFailure(call: okhttp3.Call, e: IOException) {
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
                 println("Network Error: $e")
                 runOnUiThread {
                     tvStatus.text = getString(R.string.status_network_error, e.message)
                 }
             }
 
-            override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
+            override fun onResponse(call: Call, response: Response) {
                 response.use {
                     val code = response.code
                     runOnUiThread {
