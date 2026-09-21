@@ -11,10 +11,6 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
-
-
-
-
     <application
         android:networkSecurityConfig="@xml/network_security_config"
         android:allowBackup="true"
@@ -27,13 +23,20 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.WarehouseLocationScanner">
 
+        <!-- Boot to the Login Screen First -->
         <activity
-            android:name=".ui.scanner.MainActivity"
+            android:name=".ui.scanner.LoginActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+
+        <!-- Scanner is now secured behind the Login -->
+        <activity
+            android:name=".ui.scanner.MainActivity"
+            android:exported="false">
         </activity>
 
     </application>

@@ -62,10 +62,21 @@ class MainActivity : AppCompatActivity() {
     // Reference to our broadcast receiver instance
     private lateinit var zebraReceiver: ZebraScanReceiver
 
+    // --- AUDIT LOGGING VARIABLES ---
+    private lateinit var activeUser: String
+    private val deviceSignature: String by lazy {
+        val model = android.os.Build.MODEL
+        val androidId = android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ANDROID_ID)
+        "$model-$androidId"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
+
+        // Capture the user identity passed from LoginActivity
+        activeUser = intent.getStringExtra("USER_SIGNATURE") ?: "Unknown_User"
 
         // Connect code variables to the physical XML elements
         tvItem = findViewById(R.id.tvItem)
@@ -139,8 +150,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun sendDataToServer(item: String, location: String) {
-        // 1. JSON String Payload
-        val jsonPayload = """{"item": "$item", "location": "$location"}"""
+        // 1. JSON String Payload with injected device and user signatures for the Hyper-V audit log
+        val jsonPayload = """{"item": "$item", "location": "$location", "device_id": "$deviceSignature", "user_id": "$activeUser"}"""
 
         // 3. Define the media type
         val mediaType = "application/json; charset=utf-8".toMediaType()
