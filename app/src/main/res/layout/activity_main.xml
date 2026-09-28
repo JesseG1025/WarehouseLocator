@@ -149,7 +149,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="32dp"
         android:padding="16dp"
-        android:text="Warehouse Locater Version 1.0 by Jesse G"
+        android:text="Warehouse Locater Version 1.1.0 by Jesse G"
         android:textAlignment="center"
         android:textColor="@color/theme_text"
         android:textSize="14sp"
