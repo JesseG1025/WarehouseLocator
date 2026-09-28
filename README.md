@@ -49,5 +49,5 @@ To clone and compile this project locally, you must specify your own internal se
 
 ### Version 1.1.0 Roadmap
 - [ ] **Custom Adaptive App Icon:** Modern adaptive launcher icons for Android devices.
-- [ ] **Audio & Haptic Scan Feedback:** Audio tones (`ToneGenerator`) and vibration cues (`Vibrator`) for scan confirmation and error alerts.
+- [x] **Audio & Haptic Scan Feedback:** Audio tones (`ToneGenerator`) and vibration cues (`Vibrator`) for scan confirmation and error alerts.
 - [x] **Recent Scans Session History:** On-screen log/list of recently completed item-location pairings during the active session.

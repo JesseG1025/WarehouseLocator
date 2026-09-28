@@ -17,3 +17,7 @@ google-services.json
 .cxx
 local.properties
 app/src/debug/res/xml/network_security_config.xml
+
+# CLI local state cache
+.gemini/
+.agy/
