@@ -51,4 +51,3 @@ To clone and compile this project locally, you must specify your own internal se
 - [ ] **Custom Adaptive App Icon:** Modern adaptive launcher icons for Android devices.
 - [ ] **Audio & Haptic Scan Feedback:** Audio tones (`ToneGenerator`) and vibration cues (`Vibrator`) for scan confirmation and error alerts.
 - [ ] **Recent Scans Session History:** On-screen log/list of recently completed item-location pairings during the active session.
-- [ ] **Clear/Reset Scan Button:** UI trigger to manually clear the current scan queue or reset scan states without restarting the app.
