@@ -40,6 +40,11 @@
             android:exported="false">
         </activity>
 
+        <activity
+            android:name=".ui.scanner.RecentScansActivity"
+            android:exported="false">
+        </activity>
+
     </application>
 
 </manifest>

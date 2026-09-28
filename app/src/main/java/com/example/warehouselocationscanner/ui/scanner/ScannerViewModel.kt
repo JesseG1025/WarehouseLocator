@@ -47,11 +47,22 @@ class ScannerViewModel : ViewModel() {
     }
 
     /**
-     * Resets the entire screen back to the default empty state.
+     * Resets the entire screen back to the default empty state, but preserves the recent scans.
      */
     fun resetScan() {
-        _uiState.update {
-            ScannerUiState() // Calling the data class with no arguments uses the default nulls
+        _uiState.update { currentState ->
+            ScannerUiState(recentScans = currentState.recentScans)
+        }
+    }
+
+    /**
+     * Adds a newly completed item-location pair to the history.
+     */
+    fun addRecentScan(item: String, location: String) {
+        _uiState.update { currentState ->
+            val updatedList = currentState.recentScans.toMutableList()
+            updatedList.add("Item: $item -> Loc: $location")
+            currentState.copy(recentScans = updatedList)
         }
     }
 }
