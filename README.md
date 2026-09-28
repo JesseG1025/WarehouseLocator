@@ -47,7 +47,7 @@ To clone and compile this project locally, you must specify your own internal se
 - [x] **Hardware Scan Receiver:** Native `ZebraScanReceiver` DataWedge intent processing.
 - [x] **Audit Logging:** Attach `device_id` and `user_id` signatures to HTTP POST requests to track all scan actions on the Hyper-V server.
 
-### Version 1.1.0 Roadmap
+### Version 1.1.0 Roadmap (Completed)
 - [x] **Custom Adaptive App Icon:** Modern adaptive launcher icons for Android devices.
 - [x] **Audio & Haptic Scan Feedback:** Audio tones (`ToneGenerator`) and vibration cues (`Vibrator`) for scan confirmation and error alerts.
 - [x] **Recent Scans Session History:** On-screen log/list of recently completed item-location pairings during the active session.
