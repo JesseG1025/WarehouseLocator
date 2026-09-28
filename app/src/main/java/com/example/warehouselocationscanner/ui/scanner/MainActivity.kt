@@ -4,7 +4,11 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
@@ -46,6 +50,9 @@ class MainActivity : AppCompatActivity() {
     private val dataString = "com.symbol.datawedge.data_string"
 
     private val client = OkHttpClient()
+    
+    private var toneGenerator: ToneGenerator? = null
+    private var vibrator: Vibrator? = null
 
     // Mutable variables driving our simple two-step scan state machine:
     // 1st scan populates itemScan, 2nd scan populates locationScan, then we submit and reset.
@@ -74,6 +81,15 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
+
+        toneGenerator = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
+        vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as android.os.VibratorManager
+            vibratorManager.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
 
         // Capture the user identity passed from LoginActivity
         activeUser = intent.getStringExtra("USER_SIGNATURE") ?: "Unknown_User"
@@ -168,6 +184,7 @@ class MainActivity : AppCompatActivity() {
                 println("Network Error: $e")
                 runOnUiThread {
                     tvStatus.text = getString(R.string.status_network_error, e.message)
+                    playErrorFeedback()
                 }
             }
 
@@ -178,14 +195,39 @@ class MainActivity : AppCompatActivity() {
                         if (!response.isSuccessful) {
                             println("Server rejected request: $code")
                             tvStatus.text = getString(R.string.status_server_error, code)
+                            playErrorFeedback()
                         } else {
                             println("Success! Code: $code")
                             tvStatus.text = getString(R.string.status_success)
+                            playSuccessFeedback()
                         }
                     }
                 }
             }
         })
+    }
+
+    private fun playSuccessFeedback() {
+        toneGenerator?.startTone(ToneGenerator.TONE_PROP_BEEP, 150)
+        
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            vibrator?.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator?.vibrate(100)
+        }
+    }
+
+    private fun playErrorFeedback() {
+        toneGenerator?.startTone(ToneGenerator.TONE_SUP_ERROR, 300)
+        
+        val timings = longArrayOf(0, 200, 100, 200) // Double-pulse: delay, vibrate, sleep, vibrate
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            vibrator?.vibrate(VibrationEffect.createWaveform(timings, -1))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator?.vibrate(timings, -1)
+        }
     }
 
     // When the app is active on the screen, register to receive DataWedge scan broadcasts.
@@ -201,6 +243,12 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         unregisterReceiver(zebraReceiver)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        toneGenerator?.release()
+        toneGenerator = null
     }
 }
 
