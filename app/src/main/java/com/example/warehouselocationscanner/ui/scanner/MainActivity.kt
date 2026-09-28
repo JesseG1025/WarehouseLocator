@@ -58,6 +58,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvStatus: TextView
 
     private lateinit var btnClear: Button
+    private lateinit var btnRecentScans: Button
 
     // Reference to our broadcast receiver instance
     private lateinit var zebraReceiver: ZebraScanReceiver
@@ -83,12 +84,22 @@ class MainActivity : AppCompatActivity() {
         tvLocation = findViewById(R.id.tvLocation)
         tvStatus = findViewById(R.id.tvStatus)
         btnClear = findViewById(R.id.btnClear)
+        btnRecentScans = findViewById(R.id.btnRecentScans)
 
         /**
          * Allows workers to reset any scans. Can be used to clear accidental scans.
          */
         btnClear.setOnClickListener {
             viewModel.resetScan()
+        }
+
+        /**
+         * Navigate to the Recent Scans screen
+         */
+        btnRecentScans.setOnClickListener {
+            val intent = Intent(this, RecentScansActivity::class.java)
+            intent.putStringArrayListExtra("RECENT_SCANS", ArrayList(viewModel.uiState.value.recentScans))
+            startActivity(intent)
         }
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
@@ -181,6 +192,8 @@ class MainActivity : AppCompatActivity() {
                         } else {
                             println("Success! Code: $code")
                             tvStatus.text = getString(R.string.status_success)
+                            // Record the successful scan to our history
+                            viewModel.addRecentScan(item, location)
                         }
                     }
                 }

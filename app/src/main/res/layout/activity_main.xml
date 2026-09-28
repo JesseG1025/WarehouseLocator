@@ -127,8 +127,22 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- Button to navigate to recent scans screen -->
+    <Button
+        android:id="@+id/btnRecentScans"
+        android:layout_width="150dp"
+        android:layout_height="40dp"
+        android:layout_marginTop="16dp"
+        app:backgroundTint="@color/theme_surface"
+        android:textColor="@color/theme_text"
+        app:cornerRadius="0dp"
+        android:text="Recent Scans"
+        app:layout_constraintTop_toBottomOf="@id/tvStatus"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <!-- Text view for credits, pulled out of the card to blend into the background -->
-    <!-- Anchors to the bottom of the status text -->
+    <!-- Anchors to the bottom of the recent scans button -->
     <TextView
         android:id="@+id/tvCredit"
         android:layout_width="match_parent"
@@ -139,7 +153,7 @@
         android:textAlignment="center"
         android:textColor="@color/theme_text"
         android:textSize="14sp"
-        app:layout_constraintTop_toBottomOf="@id/tvStatus"
+        app:layout_constraintTop_toBottomOf="@id/btnRecentScans"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
