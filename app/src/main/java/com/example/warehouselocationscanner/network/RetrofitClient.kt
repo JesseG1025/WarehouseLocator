@@ -1,6 +1,9 @@
 package com.example.warehouselocationscanner.network
 
+import android.content.Context
 import com.example.warehouselocationscanner.BuildConfig
+import com.example.warehouselocationscanner.utils.SharedPrefsManager
+import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -9,14 +12,30 @@ import retrofit2.converter.gson.GsonConverterFactory
  * Uses BuildConfig.SERVER_IP to avoid hardcoding IP addresses per security guidelines.
  */
 object RetrofitClient {
-    // Dynamically construct the base URL using BuildConfig.SERVER_IP
     private val BASE_URL = "http://${BuildConfig.SERVER_IP}:5000/"
+    
+    private var apiService: ApiService? = null
 
-    val apiService: ApiService by lazy {
-        Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(ApiService::class.java)
+    /**
+     * Initializes and returns the ApiService. Requires Context for the AuthInterceptor.
+     */
+    fun getApiService(context: Context): ApiService {
+        if (apiService == null) {
+            val sharedPrefsManager = SharedPrefsManager(context)
+            
+            // Add OkHttp client with the AuthInterceptor
+            val okHttpClient = OkHttpClient.Builder()
+                .addInterceptor(AuthInterceptor(context.applicationContext, sharedPrefsManager))
+                .build()
+
+            val retrofit = Retrofit.Builder()
+                .baseUrl(BASE_URL)
+                .client(okHttpClient)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+
+            apiService = retrofit.create(ApiService::class.java)
+        }
+        return apiService!!
     }
 }
