@@ -5,5 +5,6 @@ package com.example.warehouselocationscanner.network
  * Encapsulates the credentials needed to authenticate.
  */
 data class LoginRequest(
-    val workerId: String
+    val username: String,
+    val password: String
 )

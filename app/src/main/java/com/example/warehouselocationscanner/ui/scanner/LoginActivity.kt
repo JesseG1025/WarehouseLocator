@@ -20,6 +20,7 @@ class LoginActivity : AppCompatActivity() {
         setContentView(R.layout.activity_login)
 
         val etWorkerId = findViewById<TextInputEditText>(R.id.etWorkerId)
+        val etPassword = findViewById<TextInputEditText>(R.id.etPassword)
         val btnLogin = findViewById<Button>(R.id.btnLogin)
 
         // Restrict input to 20 characters maximum
@@ -28,8 +29,9 @@ class LoginActivity : AppCompatActivity() {
         btnLogin.setOnClickListener {
             val rawInput = etWorkerId.text.toString().trim()
             val sanitizedName = rawInput.replace(Regex("[^a-zA-Z0-9_-]"), "")
+            val passwordInput = etPassword.text.toString()
 
-            if (sanitizedName.isNotEmpty()) {
+            if (sanitizedName.isNotEmpty() && passwordInput.isNotEmpty()) {
                 if (sanitizedName != rawInput) {
                     Toast.makeText(this, "Special characters were removed", Toast.LENGTH_SHORT).show()
                 }
@@ -37,13 +39,19 @@ class LoginActivity : AppCompatActivity() {
                 // Call the /api/login endpoint in a coroutine
                 lifecycleScope.launch(Dispatchers.IO) {
                     try {
-                        val request = com.example.warehouselocationscanner.network.LoginRequest(workerId = sanitizedName)
+                        val request = com.example.warehouselocationscanner.network.LoginRequest(
+                            username = sanitizedName,
+                            password = passwordInput
+                        )
                         val apiService = com.example.warehouselocationscanner.network.RetrofitClient.getApiService(this@LoginActivity)
-                        val response = apiService.login(request)
-                        
+
+                        // Dynamically route this specific request to the main Flask server
+                        val authUrl = "http://192.168.1.205:5000/api/login"
+                        val response = apiService.login(authUrl, request)
+
                         if (response.isSuccessful && response.body() != null) {
                             val token = response.body()!!.token
-                            
+
                             // Save the token using SharedPrefsManager
                             val sharedPrefsManager = com.example.warehouselocationscanner.utils.SharedPrefsManager(this@LoginActivity)
                             sharedPrefsManager.saveToken(token)
@@ -66,7 +74,7 @@ class LoginActivity : AppCompatActivity() {
                     }
                 }
             } else {
-                Toast.makeText(this, "Please enter a valid alphanumeric ID", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Please enter both ID and Password", Toast.LENGTH_SHORT).show()
             }
         }
     }
