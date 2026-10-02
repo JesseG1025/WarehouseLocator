@@ -24,7 +24,7 @@ class AuthInterceptor(
         // Attach the token if it exists
         val requestBuilder = originalRequest.newBuilder()
         if (!token.isNullOrEmpty()) {
-            requestBuilder.addHeader("Authorization", "Bearer $token")
+            requestBuilder.addHeader("X-API-Key", token)
         }
 
         val request = requestBuilder.build()
