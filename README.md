@@ -1,6 +1,6 @@
 # Warehouse Location Scanner
 
-> Modernized, native Android application designed for high speed warehouse floor operations. Replaces legacy system interfaces with a streamlined, error-proof scanning experience.
+> Modernized, native Android application designed for high-speed warehouse floor operations. Features a dual-server architecture and encrypted token authentication to securely interface with legacy systems via a streamlined, error-proof scanning experience.
 
 ## Hardware Integration
 
@@ -11,20 +11,27 @@ This application is optimized and designed specifically for the **Zebra TC22** e
 * **Language:** Kotlin
 * **Minimum SDK:** Android 8.0 (API 26)
 * **Target SDK:** Android 14 (API 34)
-* **Networking:** OkHttp3 (RESTful communication)
+* **Networking:** Retrofit2 & OkHttp3 (RESTful communication, Interceptors)
+* **Security:** AndroidX Security Crypto (`EncryptedSharedPreferences`)
 * **UI/UX:** Material Design (Dark Industrial Theme)
 * **Architecture:** MVVM (`MainActivity`, `ScannerViewModel`, `ScannerUiState`)
 
-## Key Features (Version 1.0.0)
+## System Architecture: Dual-Server Flow
 
+The application bridges modern mobile security with legacy database infrastructure by routing traffic between two distinct internal endpoints:
+
+1. **Authentication Server:** A Flask-based REST API that validates user credentials against a hashed SQLite database and issues a secure `X-API-Key` session token upon successful login.
+2. **Operations Gateway:** A Windows Hyper-V server running legacy PyODBC drivers that receives the injected token, validates the session, and executes `UPDATE` commands on the Advantage Database Server (ADS).
+
+## Key Features (Version 1.2.0)
+
+* **Secure Authentication & Token Management:** Replaced client-side sanitization with a full server-side login flow. Tokens are stored securely on the hardware level using `EncryptedSharedPreferences` (AES256_GCM).
+* **Automated Request Authorization (`AuthInterceptor`):** Automatically injects the stored `X-API-Key` into all operational HTTP headers. Rejects `401 Unauthorized` responses and instantly routes the user back to the login gate.
 * **MVVM Architecture:** Robust state preservation using `ScannerViewModel` and `ScannerUiState`, preventing data loss across device configuration and orientation changes.
 * **Dark Industrial UI:** High-contrast, card-based Material Design interface tailored for warehouse floor environments.
-* **Worker ID Gatekeeper (`LoginActivity`):** Client-side worker ID sanitization (max 20 chars, alphanumeric + `_-`) that passes `USER_SIGNATURE` via Intent extra to the scanning workflow.
-* **Zero-Latency Zebra DataWedge Integration (`ZebraScanReceiver`):** Listens for broadcast intent `com.frontera.scanner.ACTION` and decodes scan data via `contentResolver` on Android 11+ for instant hardware barcode processing.
+* **Zero-Latency Zebra DataWedge Integration (`ZebraScanReceiver`):** Listens for broadcast intent `com.frontera.scanner.ACTION` and decodes scan data via `contentResolver` on Android 11+ for instant hardware barcode processing. 
+* **Custom Network Security Manifest Overrides:** Bypasses aggressive third-party DataWedge SDK cleartext blocking using explicit `tools:replace` manifest directives, allowing seamless communication with local `192.168.1.X` subnets.
 * **Two-Step Scan State Machine:** Strict enforcement of scanning sequence (1st scan: Source/Item, 2nd scan: Destination/Location) to prevent unintended data entry errors.
-* **Audit Logging & Hyper-V Server Sync:** Transmits full audit payloads including `device_id` (`<Build.MODEL>-<ANDROID_ID>`) and `user_id` (`USER_SIGNATURE`) to the backend endpoint (`http://${BuildConfig.SERVER_IP}:5000/scanner/location_update`).
-* **Secure Environment Variables:** Internal server IPs are injected at compile time via `BuildConfig.SERVER_IP`, keeping sensitive infrastructure out of version control.
-* **Adaptive Network Security:** Custom network security configuration allowing local HTTP communication for internal server routing while maintaining secure standards.
 
 ---
 
@@ -40,14 +47,19 @@ To clone and compile this project locally, you must specify your own internal se
 
 ## Roadmap
 
-### Version 1.0.0 (Completed)
-- [x] **State Management:** Implement `ScannerViewModel` and `ScannerUiState` to preserve active scan data during device orientation changes.
-- [x] **UI Overhaul:** Dark Industrial, card-based Material Design interface overhaul.
-- [x] **Worker ID Authentication:** `LoginActivity` gatekeeper with worker ID sanitization and signature passing.
-- [x] **Hardware Scan Receiver:** Native `ZebraScanReceiver` DataWedge intent processing.
-- [x] **Audit Logging:** Attach `device_id` and `user_id` signatures to HTTP POST requests to track all scan actions on the Hyper-V server.
+### Version 1.2.0 (Completed)
+- [x] **API Migration:** Replaced raw HTTP connections with a Retrofit2 networking client.
+- [x] **Secure Auth Flow:** Implemented username/password login endpoint routing.
+- [x] **Token Persistence:** Upgraded storage to `EncryptedSharedPreferences` to prevent device-level token extraction.
+- [x] **Network Security Overrides:** Patched Android 9+ cleartext traffic restrictions conflicting with DataWedge SDKs.
 
-### Version 1.1.0 Roadmap (Completed)
+### Version 1.1.0 (Completed)
 - [x] **Custom Adaptive App Icon:** Modern adaptive launcher icons for Android devices.
 - [x] **Audio & Haptic Scan Feedback:** Audio tones (`ToneGenerator`) and vibration cues (`Vibrator`) for scan confirmation and error alerts.
 - [x] **Recent Scans Session History:** On-screen log/list of recently completed item-location pairings during the active session.
+
+### Version 1.0.0 (Completed)
+- [x] **State Management:** Implement `ScannerViewModel` and `ScannerUiState`.
+- [x] **UI Overhaul:** Dark Industrial, card-based Material Design interface.
+- [x] **Hardware Scan Receiver:** Native `ZebraScanReceiver` DataWedge intent processing.
+- [x] **Audit Logging:** Attach `device_id` and `user_id` signatures to HTTP POST requests to track all scan actions on the Hyper-V server.
