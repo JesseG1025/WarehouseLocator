@@ -19,5 +19,6 @@ local.properties
 app/src/debug/res/xml/network_security_config.xml
 
 # CLI local state cache
+GEMINI.md
 .gemini/
 .agy/
