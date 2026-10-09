@@ -17,6 +17,7 @@ google-services.json
 .cxx
 local.properties
 app/src/debug/res/xml/network_security_config.xml
+app/release/
 
 # CLI local state cache
 GEMINI.md
