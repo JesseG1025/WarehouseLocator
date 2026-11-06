@@ -6,7 +6,9 @@ import android.text.InputFilter
 import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.warehouselocationscanner.BuildConfig
 import com.example.warehouselocationscanner.R
+import com.example.warehouselocationscanner.utils.ErrorMessageHelper
 import com.google.android.material.textfield.TextInputEditText
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
@@ -45,8 +47,9 @@ class LoginActivity : AppCompatActivity() {
                         )
                         val apiService = com.example.warehouselocationscanner.network.RetrofitClient.getApiService(this@LoginActivity)
 
-                        // Dynamically route this specific request to the main Flask server
-                        val authUrl = "http://SERVER_IP:5000/api/login"
+                        // Dynamically route this specific request to the main Flask server using BuildConfig.SERVER_IP
+                        // never hardcoding IP addresses per developer security guidelines.
+                        val authUrl = "http://${BuildConfig.SERVER_IP}:5000/api/login"
                         val response = apiService.login(authUrl, request)
 
                         if (response.isSuccessful && response.body() != null) {
@@ -63,13 +66,15 @@ class LoginActivity : AppCompatActivity() {
                                 finish()
                             }
                         } else {
+                            val friendlyMessage = ErrorMessageHelper.getFriendlyApiErrorMessage(response, isLoginRequest = true)
                             withContext(Dispatchers.Main) {
-                                Toast.makeText(this@LoginActivity, "Login failed: ${response.code()}", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this@LoginActivity, friendlyMessage, Toast.LENGTH_LONG).show()
                             }
                         }
                     } catch (e: Exception) {
+                        val friendlyMessage = ErrorMessageHelper.getFriendlyNetworkErrorMessage(e)
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(this@LoginActivity, "Network Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@LoginActivity, friendlyMessage, Toast.LENGTH_LONG).show()
                         }
                     }
                 }

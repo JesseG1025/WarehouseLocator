@@ -30,8 +30,11 @@ class AuthInterceptor(
         val request = requestBuilder.build()
         val response = chain.proceed(request)
 
-        // Handle 401 Unauthorized
-        if (response.code == 401) {
+        // Handle 401 Unauthorized on authenticated routes.
+        // We do NOT redirect if the call was already targeting /api/login, as that would
+        // loop/relaunch LoginActivity instead of letting LoginActivity display the failure message.
+        val isLoginEndpoint = request.url.encodedPath.contains("login")
+        if (response.code == 401 && !isLoginEndpoint) {
             sharedPrefsManager.clearToken()
             
             // Redirect to LoginActivity
