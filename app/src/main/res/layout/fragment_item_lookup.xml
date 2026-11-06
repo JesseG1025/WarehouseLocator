@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Item Lookup tab: scan an item barcode and display what the WMS knows about it. -->
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="24dp">
+
+    <!-- Tab title, styled to match the Scan tab's "Warehouse Locator" header -->
+    <TextView
+        android:id="@+id/tvLookupTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:text="@string/lookup_title"
+        android:textColor="@color/white"
+        android:fontFamily="sans-serif-black"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Card showing the barcode that was just scanned -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardLookupItem"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        app:cardElevation="0dp"
+        app:cardCornerRadius="8dp"
+        app:cardBackgroundColor="@color/theme_surface"
+        app:layout_constraintTop_toBottomOf="@id/tvLookupTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/tvLookupItem"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:drawableStart="@drawable/ic_barcode"
+            android:drawablePadding="10dp"
+            android:text="Item: --"
+            android:textColor="@color/theme_text"
+            android:fontFamily="monospace"
+            android:textAllCaps="true"
+            android:textSize="20sp" />
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Indeterminate spinner shown only while the GET request is in flight -->
+    <ProgressBar
+        android:id="@+id/progressLookup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:indeterminateTint="@color/theme_accent"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/cardLookupItem"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Status line (prompt / searching / errors), same style as the Scan tab status -->
+    <TextView
+        android:id="@+id/tvLookupStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:padding="16dp"
+        android:text="@string/lookup_prompt"
+        android:textAlignment="center"
+        android:textColor="@color/theme_text"
+        android:textSize="18sp"
+        android:textStyle="italic"
+        app:layout_constraintTop_toBottomOf="@id/progressLookup"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Result card. Scrollable because the server may return many fields/locations;
+         fills the remaining space down to the bottom nav. -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardLookupResult"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:visibility="gone"
+        app:cardElevation="0dp"
+        app:cardCornerRadius="8dp"
+        app:cardBackgroundColor="@color/theme_surface"
+        app:layout_constraintTop_toBottomOf="@id/tvLookupStatus"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <!-- Single TextView (vs. a RecyclerView) keeps this light: results are small
+                 and pre-formatted once in the ViewModel. -->
+            <TextView
+                android:id="@+id/tvLookupResult"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="16dp"
+                android:fontFamily="monospace"
+                android:lineSpacingExtra="4dp"
+                android:textColor="@color/theme_text"
+                android:textIsSelectable="true"
+                android:textSize="16sp" />
+        </ScrollView>
+
+    </com.google.android.material.card.MaterialCardView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

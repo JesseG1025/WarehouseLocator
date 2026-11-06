@@ -55,6 +55,9 @@ android {
 dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
     implementation(libs.androidx.activity.ktx)
+    // Fragment KTX: lets each bottom-nav tab live as a Fragment inside MainActivity and
+    // provides the activityViewModels() delegate so tabs can share the scanner ViewModel.
+    implementation("androidx.fragment:fragment-ktx:1.8.9")
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.core.ktx)

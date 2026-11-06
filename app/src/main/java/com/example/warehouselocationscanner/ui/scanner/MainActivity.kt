@@ -10,35 +10,27 @@ import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.util.Log
-import android.widget.Button
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
-import kotlinx.coroutines.launch
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import java.io.IOException
-import com.example.warehouselocationscanner.BuildConfig
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.commit
 import com.example.warehouselocationscanner.R
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.Response
+import com.example.warehouselocationscanner.ui.ScanConsumer
+import com.example.warehouselocationscanner.ui.ScanFeedback
+import com.example.warehouselocationscanner.ui.lookup.ItemLookupFragment
+import com.google.android.material.bottomnavigation.BottomNavigationView
 
-class MainActivity : AppCompatActivity() {
-
-    // 1. Initialize our ViewModel to survive screen rotations
-    private val viewModel: ScannerViewModel by viewModels()
+/**
+ * Tab host. Owns the single DataWedge receiver plus the shared beep/vibrate feedback,
+ * and forwards each scan to whichever tab is currently visible.
+ * The put-away UI and its POST logic now live in ScanFragment / ScannerViewModel.
+ */
+class MainActivity : AppCompatActivity(), ScanFeedback {
 
     // Intent action DataWedge is configured (in the profile) to broadcast on every scan.
     // Must match the "Intent Action" field in your DataWedge profile's Intent Output settings exactly.
@@ -49,8 +41,6 @@ class MainActivity : AppCompatActivity() {
     // content:// URI under "com.symbol.datawedge.decode_data" that we have to query separately.
     private val dataString = "com.symbol.datawedge.data_string"
 
-    private val client = OkHttpClient()
-    
     private var toneGenerator: ToneGenerator? = null
     private var vibrator: Vibrator? = null
 
@@ -59,24 +49,14 @@ class MainActivity : AppCompatActivity() {
     // (NOTE: This logic is now safely encapsulated inside ScannerViewModel, but the
     // fundamental flow remains exactly as described above).
 
-    // UI Elements for text display
-    private lateinit var tvItem: TextView
-    private lateinit var tvLocation: TextView
-    private lateinit var tvStatus: TextView
-
-    private lateinit var btnClear: Button
-    private lateinit var btnRecentScans: Button
-
     // Reference to our broadcast receiver instance
     private lateinit var zebraReceiver: ZebraScanReceiver
 
-    // --- AUDIT LOGGING VARIABLES ---
-    private lateinit var activeUser: String
-    private val deviceSignature: String by lazy {
-        val model = android.os.Build.MODEL
-        val androidId = android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ANDROID_ID)
-        "$model-$androidId"
-    }
+    // The tab Fragments. Both are kept alive and toggled with show/hide (instead of replace)
+    // so switching tabs is instant and each tab keeps its state without re-inflating views.
+    private lateinit var scanFragment: Fragment
+    private lateinit var lookupFragment: Fragment
+    private lateinit var activeFragment: Fragment
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -92,37 +72,13 @@ class MainActivity : AppCompatActivity() {
             getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         }
 
-        // Capture the user identity passed from LoginActivity
-        activeUser = intent.getStringExtra("USER_SIGNATURE") ?: "Unknown_User"
-
-        // Connect code variables to the physical XML elements
-        tvItem = findViewById(R.id.tvItem)
-        tvLocation = findViewById(R.id.tvLocation)
-        tvStatus = findViewById(R.id.tvStatus)
-        btnClear = findViewById(R.id.btnClear)
-        btnRecentScans = findViewById(R.id.btnRecentScans)
-
-        /**
-         * Allows workers to reset any scans. Can be used to clear accidental scans.
-         */
-        btnClear.setOnClickListener {
-            viewModel.resetScan()
-        }
-
-        /**
-         * Navigate to the Recent Scans screen
-         */
-        btnRecentScans.setOnClickListener {
-            val intent = Intent(this, RecentScansActivity::class.java)
-            intent.putStringArrayListExtra("RECENT_SCANS", ArrayList(viewModel.uiState.value.recentScans))
-            startActivity(intent)
-        }
-
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+
+        setupTabs(savedInstanceState)
 
         // Initialize our receiver and pass actions/callbacks to handle UI updates.
         // handleScan() runs every time a barcode is successfully decoded from DataWedge.
@@ -133,94 +89,53 @@ class MainActivity : AppCompatActivity() {
                 handleScan(scannedValue)
             }
         )
+    }
 
-        // 2. Observe the ViewModel's UI State reactively
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.uiState.collect { state ->
-                    updateUI(state)
-                }
+    /**
+     * Adds both tab Fragments once, or re-attaches the existing ones after a configuration
+     * change (the FragmentManager restores them itself, so we look them up by tag).
+     */
+    private fun setupTabs(savedInstanceState: Bundle?) {
+        if (savedInstanceState == null) {
+            scanFragment = ScanFragment()
+            lookupFragment = ItemLookupFragment()
+            supportFragmentManager.commit {
+                add(R.id.fragmentContainer, lookupFragment, TAG_LOOKUP)
+                hide(lookupFragment)
+                add(R.id.fragmentContainer, scanFragment, TAG_SCAN)
             }
+            activeFragment = scanFragment
+        } else {
+            scanFragment = supportFragmentManager.findFragmentByTag(TAG_SCAN)!!
+            lookupFragment = supportFragmentManager.findFragmentByTag(TAG_LOOKUP)!!
+            activeFragment = if (lookupFragment.isHidden) scanFragment else lookupFragment
+        }
+
+        findViewById<BottomNavigationView>(R.id.bottomNav).setOnItemSelectedListener { item ->
+            val target = when (item.itemId) {
+                R.id.nav_lookup -> lookupFragment
+                else -> scanFragment
+            }
+            if (target !== activeFragment) {
+                // setReorderingAllowed lets the FragmentManager batch the hide/show efficiently.
+                supportFragmentManager.commit {
+                    setReorderingAllowed(true)
+                    hide(activeFragment)
+                    show(target)
+                }
+                activeFragment = target
+            }
+            true
         }
     }
 
     private fun handleScan(barcodeData: String) {
-        // State machine to alternate between item scan and location scan.
-        // Barcodes look similar in format, so we rely purely on scan ORDER
-        // (1st = item, 2nd = location) rather than trying to detect barcode type.
-
-        // Pass the raw data directly to the ViewModel. It handles the logic and
-        // will automatically emit a new state for the UI to observe.
-        viewModel.processScan(barcodeData)
+        // Route the scan to the visible tab only: on Scan it advances the item -> location
+        // pair, on Lookup it triggers an item lookup.
+        (activeFragment as? ScanConsumer)?.onScan(barcodeData)
     }
 
-    private fun updateUI(state: ScannerUiState) {
-        // Update text views based on the current state from the ViewModel
-        tvItem.text = state.sourceBarcode?.let { getString(R.string.item_scanned, it) }
-            ?: "Item: " // Fallback if null
-
-        tvLocation.text = state.destinationBarcode?.let { getString(R.string.location_scanned, it) }
-            ?: "Location: " // Leave blank until scanned
-
-        tvStatus.text = state.statusMessage
-
-        // If both barcodes have been captured, fire the network request
-        if (state.isReadyToMatch) {
-            tvStatus.text = getString(R.string.status_sending)
-            sendDataToServer(state.sourceBarcode!!, state.destinationBarcode!!)
-
-            // v1 behavior: fail loudly, no retry queue.
-            // Reset immediately after firing the request so the next scan pair can begin,
-            // regardless of whether this request ultimately succeeds or fails.
-            viewModel.resetScan()
-        }
-    }
-
-    private fun sendDataToServer(item: String, location: String) {
-        // 1. JSON String Payload with injected device and user signatures for the Hyper-V audit log
-        val jsonPayload = """{"item": "$item", "location": "$location", "device_id": "$deviceSignature", "user_id": "$activeUser"}"""
-
-        // 3. Define the media type
-        val mediaType = "application/json; charset=utf-8".toMediaType()
-
-        // 4. HTTP Request
-        val body = jsonPayload.toRequestBody(mediaType)
-        val request = Request.Builder()
-            .url("http://${BuildConfig.SERVER_IP}:5000/scanner/location_update")
-            .post(body)
-            .build()
-
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                println("Network Error: $e")
-                runOnUiThread {
-                    tvStatus.text = getString(R.string.status_network_error, e.message)
-                    playErrorFeedback()
-                }
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                response.use {
-                    val code = response.code
-                    runOnUiThread {
-                        if (!response.isSuccessful) {
-                            println("Server rejected request: $code")
-                            tvStatus.text = getString(R.string.status_server_error, code)
-                            playErrorFeedback()
-                        } else {
-                            println("Success! Code: $code")
-                            tvStatus.text = getString(R.string.status_success)
-                            // Record the successful scan to our history
-                            viewModel.addRecentScan(item, location)
-                            playSuccessFeedback()
-                        }
-                    }
-                }
-            }
-        })
-    }
-
-    private fun playSuccessFeedback() {
+    override fun playSuccessFeedback() {
         toneGenerator?.startTone(ToneGenerator.TONE_PROP_BEEP, 150)
         
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
@@ -231,7 +146,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun playErrorFeedback() {
+    override fun playErrorFeedback() {
         toneGenerator?.startTone(ToneGenerator.TONE_SUP_ERROR, 300)
         
         val timings = longArrayOf(0, 200, 100, 200) // Double-pulse: delay, vibrate, sleep, vibrate
@@ -262,6 +177,12 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         toneGenerator?.release()
         toneGenerator = null
+    }
+
+    // Fragment tags used to find the existing tabs again after rotation/recreation.
+    private companion object {
+        const val TAG_SCAN = "tab_scan"
+        const val TAG_LOOKUP = "tab_lookup"
     }
 }
 

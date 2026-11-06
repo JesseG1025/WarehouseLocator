@@ -7,4 +7,17 @@
     <string name="status_network_error">Status: Network Error - %1$s</string>
     <string name="status_server_error">Status: Server Error (%1$d)</string>
     <string name="status_success">Status: Success! DB Updated.</string>
+
+    <!-- Bottom navigation tab labels -->
+    <string name="tab_scan">Scan</string>
+    <string name="tab_lookup">Lookup</string>
+
+    <!-- Item Lookup tab -->
+    <string name="lookup_title">Item Lookup</string>
+    <string name="lookup_prompt">Scan an item to see where it is stored.</string>
+    <string name="lookup_searching">Looking up %1$s…</string>
+    <string name="lookup_not_found">Item %1$s was not found.</string>
+    <string name="lookup_server_error">Server Error (%1$d)</string>
+    <string name="lookup_network_error">Network Error - %1$s</string>
+    <string name="lookup_empty_result">Server returned no details.</string>
 </resources>

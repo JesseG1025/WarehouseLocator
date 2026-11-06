@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bottom navigation tabs. Order here = order shown left to right. -->
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Two-step item -> location put-away flow -->
+    <item
+        android:id="@+id/nav_scan"
+        android:icon="@drawable/ic_barcode"
+        android:title="@string/tab_scan" />
+    <!-- Scan an item to see where it is stored -->
+    <item
+        android:id="@+id/nav_lookup"
+        android:icon="@drawable/ic_search"
+        android:title="@string/tab_lookup" />
+</menu>

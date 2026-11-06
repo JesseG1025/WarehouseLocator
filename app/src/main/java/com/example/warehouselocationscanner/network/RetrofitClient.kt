@@ -27,7 +27,9 @@ object RetrofitClient {
 
             // 1. Create the Logging Interceptor to see under the hood
             val loggingInterceptor = HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY // Logs URL, headers, and full JSON payload
+                // Logs URL, headers, and full JSON payload in debug builds only. Full BODY logging
+                // in release builds wastes CPU/IO on every request, so release drops to NONE.
+                level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE
             }
 
             // 2. Add OkHttp client with the AuthInterceptor AND Logging Interceptor
